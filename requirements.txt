@@ -1,0 +1,29 @@
+# ---- Web framework ----
+fastapi>=0.115,<0.200
+uvicorn[standard]>=0.32
+python-multipart>=0.0.12
+
+# ---- LangChain ----
+# 注意：务必保留上界。langchain 1.x 的 API 与本项目（基于 0.3 系列编写）不兼容，
+# 开放式 >= 会让 pip 拉到 1.x 并导致运行期报错，同时拖慢依赖解析。
+langchain-core>=0.3.15,<0.4
+langchain-text-splitters>=0.3.0,<0.4
+langchain-openai>=0.2.0,<0.4
+
+# ---- Vector store & retrieval ----
+chromadb>=0.5.15,<0.6
+posthog>=2.4,<6
+rank-bm25>=0.2.2
+numpy>=1.26
+
+# ---- Document loaders ----
+pypdf>=5.0.0
+python-docx>=1.1.2
+markdown-it-py>=3.0.0
+
+# ---- Config & utils ----
+pydantic>=2.9,<3
+pydantic-settings>=2.6,<3
+httpx>=0.27
+tenacity>=9.0.0
+tiktoken>=0.8.0

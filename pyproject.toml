@@ -1,0 +1,24 @@
+[project]
+name = "rag-knowledge-base"
+version = "0.1.0"
+description = "基于 FastAPI + LangChain 的检索增强生成（RAG）知识库问答服务"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+ignore = [
+    "B008",  # FastAPI 的 Depends() 默认参数写法
+    "E501",  # 行长交由 formatter 处理
+]

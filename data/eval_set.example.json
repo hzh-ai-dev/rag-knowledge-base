@@ -1,0 +1,42 @@
+[
+  {
+    "question": "私有化部署起步价是多少？",
+    "expected_sources": ["产品手册-AI助手.md", "常见问题FAQ.md"],
+    "expected_keywords": ["18 万", "18万", "私有化"]
+  },
+  {
+    "question": "单个上传文件的最大体积限制是多少？",
+    "expected_sources": ["产品手册-AI助手.md", "常见问题FAQ.md"],
+    "expected_keywords": ["32MB", "32 MB"]
+  },
+  {
+    "question": "混合检索用了什么融合算法？",
+    "expected_sources": ["产品手册-AI助手.md", "技术白皮书-检索增强生成.md"],
+    "expected_keywords": ["RRF", "Reciprocal Rank Fusion"]
+  },
+  {
+    "question": "默认的分块大小和重叠是多少？",
+    "expected_sources": ["产品手册-AI助手.md", "技术白皮书-检索增强生成.md"],
+    "expected_keywords": ["700", "120"]
+  },
+  {
+    "question": "标准版和专业版的价格分别是多少？",
+    "expected_sources": ["常见问题FAQ.md", "产品手册-AI助手.md"],
+    "expected_keywords": ["0.02", "0.05"]
+  },
+  {
+    "question": "扫描件 PDF 能直接识别文字吗？",
+    "expected_sources": ["常见问题FAQ.md"],
+    "expected_keywords": ["OCR", "扫描件"]
+  },
+  {
+    "question": "v3.0 版本相比 v2.0 有什么变化？",
+    "expected_sources": ["产品手册-AI助手.md"],
+    "expected_keywords": ["混合检索", "引用溯源"]
+  },
+  {
+    "question": "如何判断 RAG 系统检索效果好不好？",
+    "expected_sources": ["技术白皮书-检索增强生成.md"],
+    "expected_keywords": ["MRR", "Hit@k", "忠实度"]
+  }
+]

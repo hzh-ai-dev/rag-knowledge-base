@@ -1,0 +1,4 @@
+# Local embeddings for providers such as DeepSeek that only offer chat APIs.
+-r requirements.txt
+sentence-transformers>=3.0,<4
+langchain-community>=0.3,<0.4
