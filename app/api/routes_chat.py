@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 from app.api.schemas import ChatRequest, ChatResponse
 from app.container import get_rag_chain
 from app.core.rag_chain import RagChain
+from app.utils.errors import public_error
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -45,7 +46,7 @@ def chat_stream(
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception as exc:  # noqa: BLE001 - 流式场景必须把异常也推给前端
             logger.exception("流式问答失败")
-            error = {"type": "error", "data": f"{type(exc).__name__}: {exc}"}
+            error = {"type": "error", "data": public_error(exc)}
             yield f"data: {json.dumps(error, ensure_ascii=False)}\n\n"
         finally:
             yield "data: [DONE]\n\n"

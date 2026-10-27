@@ -80,6 +80,19 @@ def test_chat_stream_emits_sse_frames():
     assert body.rstrip().endswith("[DONE]")
 
 
+def test_stream_error_does_not_expose_internal_details():
+    class BrokenChain:
+        def stream(self, *args, **kwargs):
+            raise RuntimeError("private-provider-response")
+
+    client = _make_client(chain=BrokenChain())
+    response = client.post("/api/chat/stream", json={"question": "测试"})
+    assert '"type": "error"' in response.text
+    assert "private-provider-response" not in response.text
+    assert "检查服务日志" in response.text
+    assert response.text.rstrip().endswith("[DONE]")
+
+
 def test_reset_session_returns_ok():
     client = _make_client()
     response = client.delete("/api/chat/session/s1")

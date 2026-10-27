@@ -22,6 +22,7 @@ from app.api.schemas import HealthResponse
 from app.config import settings
 from app.container import get_vector_store
 from app.core.vectorstore import VectorStore
+from app.utils.errors import public_error
 from app.utils.logging import get_logger, setup_logging
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
@@ -42,6 +43,7 @@ async def lifespan(app: FastAPI):
         settings.enable_rerank,
         settings.top_k,
     )
+    logger.info("正在加载向量模型和知识库，首次下载模型可能较慢，请等待启动完成…")
     logger.info("已入库块数 : %d", get_vector_store().count)
     logger.info("=" * 60)
     yield
@@ -90,7 +92,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     logger.exception("未处理异常: %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"服务器内部错误: {type(exc).__name__}"},
+        content={"detail": public_error(exc)},
     )
 
 

@@ -2,9 +2,13 @@
 
 基于 **FastAPI + LangChain** 的检索增强生成（RAG）知识库问答服务。上传企业文档后，即可针对文档内容提问，回答带引用溯源、支持流式输出与多轮对话。
 
-> 这是一个面向「AI 大模型应用开发」岗位的作品集项目：完整可运行、工程结构清晰、每个技术选择都有可解释的理由。
 
-> 📖 **第一次上手？** 先看 [`QUICKSTART.md`](QUICKSTART.md) —— 面向 Python 基础，30 分钟跑起来。
+## 运行演示
+
+![知识库问答与引用来源](docs/images/demo.png)
+
+上图为此前本地运行的演示记录，展示资料上传、带编号的回答及原文引用。
+`data/samples` 为虚构业务资料，其中价格、性能、召回率等描述仅作问答素材，**不代表本项目实测结果**。项目实测数据见下方检索评估。
 
 ---
 
@@ -20,8 +24,6 @@
 - [效果评估](#效果评估)
 - [测试](#测试)
 - [Docker 部署](#docker-部署)
-- [写进简历](#写进简历)
-- [面试常见提问](#面试常见提问)
 - [后续可扩展方向](#后续可扩展方向)
 
 ---
@@ -40,7 +42,7 @@
 | 拒答保护 | 检索不到资料时明确回复「无法回答」，降低幻觉 |
 | 在线管理 | 网页端上传 / 列表 / 删除 / 重建索引，无需重启服务 |
 | 模型无关 | 任意 OpenAI 兼容接口（DeepSeek / 通义 / 智谱 / OpenAI），改配置即可切换 |
-| 可离线运行 | 向量模型可切换为本地 `bge-small-zh-v1.5`，全链路无外网依赖 |
+| 本地向量化 | 使用本地 `bge-small-zh-v1.5` 生成向量；DeepSeek 回答仍需联网 |
 
 ---
 
@@ -76,50 +78,57 @@ flowchart LR
 
 ## 快速开始
 
-### 1. 准备环境
+### 1. 安装依赖
 
-需要 Python 3.10 或更高版本。
+Windows 安装 Python 3.11 后，可在 PowerShell 运行 `./setup.ps1` 自动创建环境、安装依赖并生成 `.env`；填写密钥后运行 `./start.ps1`。启动脚本会检查配置，再加载模型。若 PowerShell 阻止脚本执行，可使用下面逐条命令，不必修改系统执行策略。
+
+建议使用 **Python 3.11**。以下为 Windows PowerShell 操作，在项目根目录执行；无需先激活虚拟环境。
 
 ```powershell
-# Windows PowerShell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+py -3.11 -m venv .venv311
+.\.venv311\Scripts\python.exe -m pip install -r requirements-local.lock.txt
+Copy-Item .env.example .env
 ```
 
-```bash
-# macOS / Linux
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+`requirements-local.lock.txt` 保存 Windows / Python 3.11 的运行依赖版本。其他平台可安装 `requirements-local.txt`，需自行验证兼容性。
 
 ### 2. 配置模型
 
-复制 `.env.example` 为 `.env`，填入你的 API Key：
+编辑 `.env`，填写自己的 API Key：
 
-```env
-# 默认方案：智谱 GLM（glm-4-flash 与 embedding-3 均免费，一个 base_url 同时提供对话与向量）
-OPENAI_API_KEY=你的密钥
-OPENAI_BASE_URL=https://open.bigmodel.cn/api/paas/v4/
-LLM_MODEL=glm-4-flash
-EMBEDDING_PROVIDER=openai
-EMBEDDING_MODEL=embedding-3
+```dotenv
+OPENAI_API_KEY=请填写自己的密钥
+OPENAI_BASE_URL=https://api.deepseek.com/v1
+LLM_MODEL=deepseek-flash
+EMBEDDING_PROVIDER=local
+EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+LOCAL_EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
 ```
 
-> **提示**：只有 DeepSeek 是例外——它目前只提供对话接口、**不提供 embedding 接口**。
-> 用 DeepSeek 时请把 `EMBEDDING_PROVIDER` 设为 `local`，
-> 并安装本地模型依赖：`pip install sentence-transformers langchain-community`。
-> 其它厂商（通义 / 硅基流动 / OpenAI）的配置见 `.env.example`。
+对话模型名称以账号实际可用模型为准。首次使用本地 BGE 模型需要联网下载，之后可以复用缓存；也可将 `LOCAL_EMBEDDING_MODEL` 设置为本机模型目录。DeepSeek 负责生成回答，BGE 负责文档向量化。
 
-### 3. 导入示例文档并启动
+### 3. 启动并体验
 
 ```powershell
-python -m scripts.ingest data/samples
-uvicorn app.main:app --reload --port 8000
+.\.venv311\Scripts\python.exe -m app.main
 ```
 
-浏览器打开 <http://localhost:8000> 即可使用网页界面，接口文档见 <http://localhost:8000/docs>。
+打开 <http://localhost:8000>，上传 `data/samples` 中的示例文档，等待入库完成后提问：
+
+1. “私有化部署的起步价格是多少？”——检查答案及引用原文。
+2. “如果需要 4 个实例，一年多少钱？”——观察同一会话中的连续问答。
+3. 提问资料未包含的问题——检查是否明确说明依据不足。
+
+也可运行 `start.ps1` 启动。接口文档位于 <http://localhost:8000/docs>。
+命令行批量导入示例资料：
+
+```powershell
+.\.venv311\Scripts\python.exe -m scripts.ingest data/samples
+```
+
+PyCharm 的项目解释器请选择 `.venv311/Scripts/python.exe`。切换向量模型后，需要重建知识库，避免混用不同模型生成的向量。
+
+仓库不包含真实密钥、虚拟环境、模型缓存和历史知识库。请只提交 `.env.example`，把自己的密钥留在本地 `.env`。
 
 ---
 
@@ -228,13 +237,13 @@ rag-knowledge-base/
 
 ## 关键设计决策
 
-这一节是项目的「技术含量」所在，面试时可以直接讲。
+以下说明核心实现与取舍，可结合代码和实验结果进行讨论。
 
 **1. 为什么用混合检索而不是纯向量检索？**
-纯向量检索依赖语义表示，对「产品型号、编号、专有名词」这类查询很容易漏召回，因为它们在语义空间里区分度不足。BM25 基于词频统计，恰好弥补这个短板。两者结果用 RRF 融合后，示例数据集上的召回率有明显提升（可用 `scripts/evaluate.py --no-hybrid` 做对比实验验证）。
+纯向量检索依赖语义表示，对「产品型号、编号、专有名词」这类查询很容易漏召回，因为它们在语义空间里区分度不足。BM25 基于词频统计，恰好弥补这个短板。本项目用 RRF 融合两路结果。实际收益需要在同一数据集上通过 `--no-hybrid` 对照实验验证，本次小样本对照中两种方式命中率相同，具体结果与限制见评估报告。
 
 **2. 为什么用 RRF 融合，而不是加权分数？**
-两路检索的分数量纲完全不同（余弦相似度在 0~1，BM25 分数无上界），直接加权需要先做归一化，而归一化方式本身又引入了主观选择。RRF 只用「排名」信息：
+两路检索的分数定义和尺度不同（向量检索分数取决于距离度量，BM25 使用词频统计），直接加权需要先做归一化，而归一化方式本身又引入了主观选择。RRF 只用「排名」信息：
 
 ```
 score(d) = Σ 1 / (k + rank_i(d))
@@ -258,26 +267,13 @@ score(d) = Σ 1 / (k + rank_i(d))
 
 ## 效果评估
 
-项目内置离线评估脚本，无需人工标注即可衡量检索质量：
+项目提供检索评估脚本，使用数据集中的预期来源和关键词作为参考标签。新增业务数据时，需要自行准备这些标签。先导入示例文档，再运行：
 
 ```bash
 python -m scripts.evaluate --dataset data/eval_set.example.json --details
 ```
 
-输出示例：
-
-```
-============================================================
-  检索评估报告
-============================================================
-  问题数量         : 8
-  Top-K            : 6
-  Hit@6            : 100.0%
-  MRR              : 0.9375
-  关键词召回率      : 91.7%
-  平均检索耗时      : 118.3 ms
-============================================================
-```
+脚本输出 Hit@k、MRR、关键词召回率和检索耗时。结果取决于模型、资料、分块参数及硬件；本次示例集结果见 [评估报告](docs/evaluation/README.md)，原始逐题结果也已提交。
 
 指标含义：`Hit@k` 衡量「找没找到」，`MRR` 衡量「排得准不准」，关键词召回率衡量「内容对不对」。
 
@@ -292,9 +288,12 @@ python -m scripts.evaluate --dataset data/eval_set.example.json --no-hybrid # �
 
 ## 测试
 
+已配置 GitHub Actions：推送或提交 Pull Request 时执行离线测试与 Ruff 检查，不需要配置 API 密钥。本机已通过 37 项测试；线上 CI 状态以 GitHub 实际运行结果为准。
+
 全部用例离线运行，不需要 API Key，也不需要联网（使用确定性的假向量模型）。
 
 ```bash
+python -m pip install -r requirements-dev.txt
 pytest              # 运行全部
 pytest -v           # 查看每条用例
 ruff check app tests scripts   # 静态检查
@@ -307,54 +306,22 @@ ruff check app tests scripts   # 静态检查
 
 ## Docker 部署
 
+仓库提供 Dockerfile 和 Compose 配置，默认镜像只安装 `requirements.txt`。
+如果使用本地 BGE 模型，需要调整镜像安装 `requirements-local.txt` 并准备模型缓存；也可配置同时支持对话和向量接口的远程服务。本文主要验证方式为 Windows / Python 3.11 本地启动，容器部署需另行验证。
+
 ```bash
-cp .env.example .env      # 填入 API Key
+cp .env.example .env
+# 按所选模型方案填写配置、调整依赖后构建
 docker compose up -d --build
 ```
 
-访问 <http://localhost:8000>。`data/` 目录已挂载到宿主机，容器重建不会丢失知识库。
-
----
-
-## 写进简历
-
-可以直接用下面的表述（按实际数据替换指标）：
-
-> **企业知识库 RAG 问答系统**（个人项目 · Python / FastAPI / LangChain / ChromaDB）
->
-> - 独立设计并实现检索增强问答服务，支持 PDF/DOCX/MD/TXT 多格式文档入库与中文友好分块，端到端支撑「上传即问答」。
-> - 针对纯向量检索对专有名词召回不佳的问题，引入 BM25 关键词检索并采用 **RRF 算法融合**双路结果，在自建评测集上 Hit@6 由 87.5% 提升至 100%、MRR 达 0.94。
-> - 实现带 **引用溯源** 的回答生成（标注来源文件与页码）与「无资料即拒答」策略，显著降低模型幻觉。
-> - 基于 **SSE 实现流式输出**，并设计幂等入库机制（内容哈希 + 覆盖写入），避免重复文件污染向量库。
-> - 工程化完备：分层架构、pydantic-settings 集中配置、依赖注入、pytest 离线测试、Docker 一键部署。
-
-**几个诚实的加分项**（面试时主动说，比被问出来更好）：
-
-- 说明这是个人项目，示例数据是自己构造的，但评估方法是通用的。
-- 说明已知不足：会话记忆存在进程内存、未做查询改写、重排用的是轻量实现。
-
----
-
-## 面试常见提问
-
-| 问题 | 答题要点 |
-| --- | --- |
-| 什么是 RAG？为什么不用微调？ | 检索+生成两步；微调成本高、更新慢、难溯源、易过拟合知识；RAG 知识可实时更新且可溯源。 |
-| 分块怎么切？ | 递归字符切分，中文优先按段落与句末标点；块 500~800 字，重叠 10~20%；可以用评估脚本扫参。 |
-| 检索召回不准怎么排查？ | 先看解析是否成功（chunks 是否为 0），再看分块粒度，再看是否缺关键词检索，最后看是否需要查询改写。 |
-| 什么是 RRF？公式？ | 基于排名的融合：`Σ 1/(k+rank)`，k 通常取 60；只需排名无需分数量纲归一化。 |
-| 怎么降低幻觉？ | 提示词强约束 + 无召回时拒答 + 强制引用编号 + 控制上下文长度。 |
-| 向量库怎么选？ | Chroma 轻量适合单机和原型；Qdrant/Milvus 适合大规模与分布式；本项目封装了一层，可替换。 |
-| top_k 怎么定？ | 太小漏信息，太大引入噪声且成本上升；通常 4~8，配合重排可以先大候选池再精排到 3~5。 |
-| 怎么评估效果？ | 离线：Hit@k、MRR、关键词召回；生成侧：忠实度、答案相关性（可用 LLM 评判）；在线：点击率、追问率。 |
-| 幂等和增量更新怎么做？ | 用内容哈希做 doc_id，chunk_id 确定性生成，写入前按 source 删除旧数据，用 upsert 覆盖。 |
-| 并发和性能如何？ | 检索与生成是瓶颈；向量检索几百毫秒内，主要耗时在大模型；可用异步、缓存、连接池优化。 |
+`data/` 目录挂载到宿主机，用于保留知识库数据。
 
 ---
 
 ## 后续可扩展方向
 
-按「性价比」排序，适合继续迭代并写进简历：
+可继续迭代的方向：
 
 1. **查询改写（Query Rewriting）**：用大模型把口语化问题改写成检索友好的表达，通常能提升明显。
 2. **接入真正的 Rerank 模型**：把 `HybridRetriever._lexical_rerank` 换成 `bge-reranker-base`，替换点已隔离在一个方法内。
@@ -365,6 +332,14 @@ docker compose up -d --build
 
 ---
 
-## 许可
+## 使用边界
 
-MIT
+当前版本面向本地演示与学习，未实现用户登录和文档权限隔离，不宜直接暴露到公网。会话记忆保存在进程内，重启后清除。引用编号便于核验来源，但不能保证生成答案始终正确；当前轻量重排器也不等同于交叉编码器模型。
+
+## 故障排查与复现边界
+
+- 浏览器提示无法访问：先运行项目，等待控制台显示 `Application startup complete`，再打开 `http://127.0.0.1:8000`；仅上传 GitHub 不会产生在线服务。
+- 首次启动较慢：本地模型需要下载、加载。网络无法访问模型仓库时，可预先下载 BGE 模型并配置其本地目录。
+- 模型认证、额度或连接失败：页面会显示对应提示，请检查本地配置，勿把密钥发到公开 Issue。
+- 当前验证环境为 Windows / Python 3.11，运行环境和模型下载不随仓库分发。全新环境安装验证记录见评估报告；不同系统仍需单独验证。
+- 面试讨论可围绕混合检索融合、分块边界、幂等入库、SSE 错误处理和小样本评估的局限展开。介绍个人贡献时应据实描述，并说明使用了哪些现成库及辅助工具。

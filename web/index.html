@@ -324,7 +324,11 @@ async function ask(question) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question, session_id: sessionId }),
     });
-    if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(typeof error.detail === "string" ? error.detail : "请求失败，请检查配置（HTTP " + res.status + "）");
+    }
+    if (!res.body) throw new Error("浏览器未收到响应，请重新发送。");
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -364,7 +368,7 @@ async function ask(question) {
     if (!started) bubble.textContent = answer || "（无内容）";
     renderCitations(bubble, citations);
   } catch (err) {
-    bubble.innerHTML = '<span style="color:#ef4444">请求失败：' + escapeHtml(err.message) + "</span>";
+    bubble.innerHTML = '<span style="color:#ef4444">请求失败：' + escapeHtml(err instanceof TypeError ? "无法连接服务，请确认项目正在运行，再刷新网页。" : err.message) + "</span>";
   } finally {
     el.send.disabled = false;
     el.messages.scrollTop = el.messages.scrollHeight;
@@ -411,6 +415,7 @@ async function refreshDocs() {
 async function refreshStatus() {
   try {
     const res = await fetch("/health");
+    if (!res.ok) throw new Error("服务未就绪");
     const h = await res.json();
     el.status.innerHTML =
       "模型：<b>" + escapeHtml(h.llm_model) + "</b><br />" +
@@ -419,7 +424,7 @@ async function refreshStatus() {
       "混合检索：<b>" + (h.hybrid_search ? "开启" : "关闭") + "</b>　" +
       "重排：<b>" + (h.rerank ? "开启" : "关闭") + "</b>";
   } catch {
-    el.status.textContent = "无法连接服务";
+    el.status.textContent = "服务未就绪：模型可能仍在加载。请确认启动窗口无报错，稍后刷新。";
   }
 }
 
@@ -427,7 +432,7 @@ async function uploadFiles(files) {
   if (!files || !files.length) return;
   const form = new FormData();
   Array.from(files).forEach(f => form.append("files", f));
-  el.dropzone.textContent = "上传中…";
+  el.dropzone.textContent = "正在上传并建立索引，请稍候…";
   try {
     const res = await fetch(API + "/documents/upload", { method: "POST", body: form });
     const data = await res.json();
