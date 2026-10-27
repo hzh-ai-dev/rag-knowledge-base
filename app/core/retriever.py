@@ -6,7 +6,7 @@
 - 两者用 RRF（Reciprocal Rank Fusion）融合，取长补短，是工业界常见做法
 
 RRF 只依赖「排名」而非「分数」，因此不需要归一化两个检索器的分数量纲，
-鲁棒性很好，是个很好的面试讲解点。
+适用于融合不同评分尺度的检索结果。
 """
 
 from __future__ import annotations
